@@ -11,7 +11,7 @@ const KB = {
 };
 
 
-const MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+const MODEL = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
 
 const SYSTEM = `أنت «مساعد بوصلة مستقبلك»، تساعد طالب سعودي قبل اختيار تخصصه الجامعي.
 القواعد:
@@ -51,7 +51,7 @@ export default async (req) => {
   const body = {
     systemInstruction: { parts: [{ text: SYSTEM + '\n\nالمعلومات المرفقة (JSON):\n' + clip(JSON.stringify(context), 30000) }] },
     contents: [...history, { role: 'user', parts: [{ text: q }] }],
-    generationConfig: { temperature: 0.3, maxOutputTokens: 1024, thinkingConfig: { thinkingBudget: 0 } },
+    generationConfig: { temperature: 1.0, maxOutputTokens: 2048, thinkingConfig: { thinkingLevel: 'low' } },
   };
 
   try {
