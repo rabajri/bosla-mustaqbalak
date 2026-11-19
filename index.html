@@ -301,7 +301,7 @@ welcome(){return top()+`<div class="screen">
  <div class="steps">${[['--teal','اعرف نفسك','ميولك وقدراتك ووش يهمك (٥ أو ١٠ دقايق)'],['--orange','اعرف السوق',AR(M.length)+' تخصص، ولكل تخصص إشارة للطلب عليه'],['--pink','اسمع ممن جرّب','اسأل المساعد، وشوف قصص ناس في المجال']].map(([c,t,d],i)=>`<div class="step raised"><b style="background:${cv(c)}">${AR(i+1)}</b><span><strong>${t}</strong><br><span class="small muted">${d}</span></span></div>`).join('')}</div>
  <div class="stack"><label for="nm">اسمك</label><input id="nm" type="text" placeholder="مثلاً: لمى" value="${esc(S.name)}">
  <div class="seg"><button data-sex="f" aria-pressed="${S.sex==='f'}">طالبة</button><button data-sex="m" aria-pressed="${S.sex==='m'}">طالب</button></div></div>
- ${S.sex?'':'<p class="note">اختر/ي طالب أو طالبة عشان نكلمك صح 🙂</p>'}<div class="stack mt-auto" style="gap:10px"><p class="small muted" style="margin:0;text-align:center">${g('اختر','اختاري')} نوع الاختبار:</p><div class="two"><button class="btn soft" data-start="short" ${S.sex?'':'disabled style="opacity:.45;cursor:default"'}>⚡ سريع<br><span class="small" style="font-weight:400">٣٠ سؤال · ٥ دقايق</span></button><button class="btn" data-start="long" ${S.sex?'':'disabled style="opacity:.45;cursor:default"'}>🧭 شامل<br><span class="small" style="font-weight:400">٦٠ سؤال · ١٠ دقايق</span></button></div><p class="note" style="margin:0">الشامل أدق، لأنه يسأل عن كل نوع من الميول مرتين أكثر.</p></div></div>`;},
+ ${S.sex?'':'<p class="note">اختر/ي طالب أو طالبة عشان نكلمك صح 🙂</p>'}<div class="stack mt-auto" style="gap:10px"><p class="small muted" style="margin:0;text-align:center">${g('اختر','اختاري')} نوع الاختبار:</p><div class="two"><button class="btn soft" data-start="short" ${S.sex?'':'disabled style="opacity:.45;cursor:default"'}>⚡ سريع<br><span class="small" style="font-weight:400">٣٠ سؤال · ٥ دقايق</span></button><button class="btn" data-start="long" ${S.sex?'':'disabled style="opacity:.45;cursor:default"'}>🧭 شامل<br><span class="small" style="font-weight:400">٦٠ سؤال · ١٠ دقايق</span></button></div><p class="note" style="margin:0">الشامل أدق، لأنه يسأل عن كل نوع من الميول مرتين أكثر.</p><button class="btn soft" data-go="chatfree" style="margin-top:4px">💬 أبي أسأل بس، بدون اختبار</button></div></div>`;},
 quiz(){const Q=QQ();const q=Q[S.q],a=S.ans[S.q];return top(S.q?null:'welcome')+`<div class="screen">
  <div><div class="row small muted"><span>ميولك · ${S.mode==='long'?'الاختبار الشامل':'الاختبار السريع'} · خطوة ١ من ٣</span><span>${AR(S.q+1)} / ${AR(Q.length)}</span></div><div class="progress inset" style="margin-top:8px"><i style="width:${(S.q+1)/Q.length*100}%"></i></div></div>
  <div class="act raised"><span class="ic inset" aria-hidden="true">${q[1]}</span><p class="muted small">كم ${g('تحب','تحبين')} هالنشاط؟</p><h2><b>${q[2]}</b></h2></div>
@@ -347,7 +347,7 @@ major(){const m=byId(S.major);const mm=matches().find(x=>x.id===m.id)||{};const 
  ${altBox(m,true)}
  <div class="panel inset"><strong class="small">يوم في الحياة</strong><p class="small">${m.day}</p></div>
  <div class="stack mt-auto"><button class="btn" data-ask="${m.id}">${g('اسأل','اسألي')} المساعد عن ${m.n}</button><button class="btn soft" data-reelfor="${m.id}">قصص ممن جرّب</button></div></div>`+nav('majors');},
-chat(){const ms=visible().length?visible():matches();const cur=S.major||ms[0].id;S.major=cur;const cm=byId(cur);
+chat(){if(S.noQuiz)return V.chatfree();const ms=visible().length?visible():matches();const cur=S.major||ms[0].id;S.major=cur;const cm=byId(cur);
  if(!S.chat.length)S.chat=[['bot',`هلا${S.name?' '+esc(S.name):''}! 👋 شفت نتيجتك. ${g('اسألني','اسأليني')} أي شي عن أي تخصص: ليش طلع لك أو ما طلع، وش تدرس، الوظائف، الطلب، أو قارن بين تخصصين.`]];
  const sug=[`ليش ما طلع لي ${ms.length>8?ms[ms.length-1].n:'الطب'}؟`,`وش أدرس في ${cm.n}؟`,`هل ${cm.n} عليه طلب؟`,`وش الفرق بين ${ms[0].n} و${(ms[1]||ms[0]).n}؟`];
  return top()+`<div class="screen" style="gap:14px">
@@ -355,6 +355,14 @@ chat(){const ms=visible().length?visible():matches();const cur=S.major||ms[0].id
  <div class="chips">${sug.map(x=>`<button class="chip" data-say="${esc(x)}">${x}</button>`).join('')}<button class="chip" data-q="real">أبي أسمع من ممارس</button></div>
  <form class="ask" id="askf"><input id="askq" type="text" autocomplete="off" placeholder="${g('اكتب','اكتبي')} سؤالك عن أي تخصص…"><button class="btn" type="submit" style="width:auto;padding:10px 18px">إرسال</button></form>
  <p class="note">مساعد بالذكاء الاصطناعي يرد من معلومات المنصة ومقابلات الممارسين (نسخة تجريبية). لا تكتب معلومات شخصية.</p></div>`+nav('chat');},
+chatfree(){if(!S.chat.length)S.chat=[['bot',`هلا! 👋 ${g('اسألني','اسأليني')} عن أي تخصص من ${AR(M.length)} تخصص: وش تدرس فيه، الوظائف، الطلب عليه، أو كلام الممارسين. ولو ${g('تبي','تبين')} نتيجة تناسبك أنت، ${g('سوّ','سوّي')} الاختبار.`]];
+ const sug=['هل علوم الحاسب صعب؟','وش أدرس في الطب؟','هل التمريض عليه طلب؟','وش الفرق بين المحاسبة والمالية؟'];
+ return top('welcome')+`<div class="screen" style="gap:14px">
+ <div class="chat inset" id="chatlog">${S.chat.map(([w,x])=>`<div class="msg ${w}">${x}</div>`).join('')}</div>
+ <div class="chips">${sug.map(x=>`<button class="chip" data-say="${esc(x)}">${x}</button>`).join('')}</div>
+ <form class="ask" id="askf"><input id="askq" type="text" autocomplete="off" placeholder="${g('اكتب','اكتبي')} سؤالك عن أي تخصص…"><button class="btn" type="submit" style="width:auto;padding:10px 18px">إرسال</button></form>
+ <button class="btn soft" data-go="welcome">🧭 ${g('أبي أسوي','أبي أسوي')} الاختبار</button>
+ <p class="note">مساعد بالذكاء الاصطناعي يرد من معلومات المنصة ومقابلات الممارسين (نسخة تجريبية). لا تكتب معلومات شخصية.</p></div>`;},
 reels(){const list=S.reelFilter?REELS.filter(r=>r.m===S.reelFilter):REELS;const L=list.length?list:REELS;const i=((S.reel%L.length)+L.length)%L.length;const r=L[i];const m=byId(r.m);
  const ic=p=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg>`;
  return top()+`<div class="screen">
@@ -388,17 +396,17 @@ function findMajors(q){let s=' '+nrm(q).replace(/\s+/g,' ')+' ';const out=[];
  return out;}
 const AI_HIST=[];
 function fmtAI(t){return esc(t).replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>');}
-async function ask(q){const ids=findMajors(q);if(ids.length)S.major=ids[0];
- const all=matches();const {pct}=profile();
- const pick=[...new Set([...ids,S.major,...visible().slice(0,5).map(x=>x.id)].filter(Boolean))].slice(0,8);
+async function ask(q){const ids=findMajors(q);if(ids.length)S.major=ids[0];const FREE=!!S.noQuiz;
+ const all=FREE?[]:matches();const {pct}=profile();
+ const pick=FREE?[...new Set([...ids,S.major].filter(Boolean))].slice(0,4):[...new Set([...ids,S.major,...visible().slice(0,5).map(x=>x.id)].filter(Boolean))].slice(0,8);
  const majors=pick.map(id=>{const m=byId(id);const mm=all.find(x=>x.id===id)||{};return {id:m.id,name:m.n,includes:m.inc||'',match:mm.score,interestMatch:mm.iS,abilityMatch:mm.aS,valuesMatch:mm.vS,demand:{g:'مطلوب',y:'غير محدد',r:'أقل طلباً'}[m.d],study:m.study,jobs:m.jobs,dayInLife:m.day,firstYear:m.y1,alternatives:ALT[m.id]||[]};});
- const top=Object.entries(pct).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([k,v])=>DIMS[k]+' '+v+'%').join('، ');
+ const top=FREE?'الطالب ما سوّى الاختبار، فما عندنا نتيجة له. لا تذكر نسب توافق. التخصصات المتوفرة في المنصة: '+M.map(m=>m.n).join('، '):Object.entries(pct).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([k,v])=>DIMS[k]+' '+v+'%').join('، ');
  S.chat.push(['me',esc(q)],['bot','<span class="muted">يكتب…</span>']);render();let c=document.getElementById('chatlog');if(c)c.scrollTop=c.scrollHeight;
  try{const ctl=new AbortController();const tm=setTimeout(()=>ctl.abort(),20000);
-  const r=await fetch('/api/ask',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({q,sex:S.sex,top,majors,history:AI_HIST.slice(-6)}),signal:ctl.signal});clearTimeout(tm);
+  const r=await fetch('/api/ask',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({q,sex:S.sex,top:top.slice(0,1500),majors,history:AI_HIST.slice(-6)}),signal:ctl.signal});clearTimeout(tm);
   const j=r.ok?await r.json():null;if(!j||!j.text)throw new Error('no');
   S.chat[S.chat.length-1]=['bot',fmtAI(j.text)];AI_HIST.push({r:'user',t:q},{r:'model',t:j.text});render();
- }catch(_){S.chat.splice(-2,2);askLocal(q);return;}
+ }catch(_){S.chat.splice(-2,2);if(FREE){const m=ids.length?byId(ids[0]):null;S.chat.push(['me',esc(q)],['bot',m?`<strong>${m.n}</strong> · طلب السوق ${light(m.d)}<br>${g('تدرس','تدرسين')} فيه: ${m.study.join('، ')}.<br>ومن الوظائف: ${m.jobs.join('، ')}.<br>${m.day}`:'المساعد مشغول الحين 🙈 '+g('جرب','جربي')+' بعد شوي، أو '+g('اذكر','اذكري')+' اسم تخصص في سؤالك.']);render();const c2=document.getElementById('chatlog');if(c2)c2.scrollTop=c2.scrollHeight;return;}askLocal(q);return;}
  c=document.getElementById('chatlog');if(c)c.scrollTop=c.scrollHeight;}
 function askLocal(q){const n=nrm(q);const ids=findMajors(q);const {pct}=profile();const all=matches();const vis=visible();
  const top2=Object.entries(pct).sort((a,b)=>b[1]-a[1]).slice(0,2).map(([k,v])=>`${DIMS[k]} (${AR(v)}٪)`).join(' و');
@@ -437,7 +445,7 @@ app.addEventListener('submit',e=>{e.preventDefault();const i=document.getElement
 app.addEventListener('input',e=>{if(e.target.id==='nm')S.name=e.target.value.slice(0,20);});
 app.addEventListener('click',e=>{const vv=e.target.closest('.reel')&&app.querySelector('.rv');if(vv&&!e.target.closest('button')){vv.paused?vv.play().catch(()=>{}):vv.pause();return;}const b=e.target.closest('button');if(!b)return;const d=b.dataset;
  if(d.sex){S.sex=d.sex;render();return;}
- if('start' in d){if(!S.sex)return;go('quiz',{q:0,ans:[],mode:d.start==='long'?'long':'short'});return;}
+ if('start' in d){if(!S.sex)return;go('quiz',{q:0,ans:[],mode:d.start==='long'?'long':'short',noQuiz:false,chat:[]});AI_HIST.length=0;return;}
  if(d.ans!=null){S.ans[S.q]=d.ans==='x'?'x':+d.ans;render();setTimeout(()=>{if(S.q<QQ().length-1)go('quiz',{q:S.q+1});else go('abil');},220);return;}
  if('prev' in d){go('quiz',{q:S.q-1});return;}
  if('restart' in d){go('quiz',{q:0,ans:[],chat:[],major:null,incl:[],hidden:[],ab:{},val:{}});return;}
@@ -458,6 +466,8 @@ app.addEventListener('click',e=>{const vv=e.target.closest('.reel')&&app.querySe
  if('mute' in d){const v=app.querySelector('.rv');if(v){v.muted=!v.muted;if(!v.muted)v.play().catch(()=>{});b.textContent=v.muted?'🔇 اضغط للصوت':'🔊 الصوت شغال';}return;}
  if('copy' in d){const el=document.getElementById('copied');
    try{navigator.clipboard.writeText(S.shareText).then(()=>{el.textContent='انْسخت ✓';},()=>{el.textContent=S.shareText;});}catch(_){el.textContent=S.shareText;}return;}
+ if(d.go==='chatfree'){AI_HIST.length=0;go('chat',{noQuiz:true,chat:[],major:null});return;}
+ if(d.go==='welcome'&&S.noQuiz){go('welcome',{noQuiz:false,chat:[]});return;}
  if(d.go){if(d.go==='reels')S.reelFilter=null;go(d.go);return;}
 });
 render();
