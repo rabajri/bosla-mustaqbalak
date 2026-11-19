@@ -11,7 +11,7 @@ const KB = {
 };
 
 
-const MODEL = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
+const MODELS = (process.env.GEMINI_MODELS || process.env.GEMINI_MODEL || 'gemini-3.8-flash').split(',').map((m) => m.trim()).filter(Boolean);
 
 const SYSTEM = `أنت «مساعد بوصلة مستقبلك»، تساعد طالب سعودي قبل اختيار تخصصه الجامعي.
 القواعد:
@@ -28,7 +28,7 @@ const clip = (s, n) => String(s ?? '').slice(0, n);
 export default async (req) => {
   if (req.method !== 'POST') return new Response('Method not allowed', { status: 405 });
   const key = process.env.GEMINI_API_KEY;
-  if (!key) { console.log('NO KEY: GEMINI_API_KEY is missing'); return Response.json({ error: 'no_key' }, { status: 500 }); }
+  if (!key && !process.env.GROQ_API_KEY) { console.log('NO KEY: set GROQ_API_KEY or GEMINI_API_KEY'); return Response.json({ error: 'no_key' }, { status: 500 }); }
 
   let b;
   try { b = await req.json(); } catch { return Response.json({ error: 'bad_json' }, { status: 400 }); }
@@ -48,35 +48,81 @@ export default async (req) => {
     .filter((h) => h && (h.r === 'user' || h.r === 'model'))
     .map((h) => ({ role: h.r, parts: [{ text: clip(h.t, 800) }] }));
 
+  const sysText = SYSTEM + '\n\nالمعلومات المرفقة (JSON):\n' + clip(JSON.stringify(context), 30000);
+
+  // ===== Groq (لو فيه GROQ_API_KEY) =====
+  const gkey = process.env.GROQ_API_KEY;
+  if (gkey) {
+    const GMODELS = (process.env.GROQ_MODELS || process.env.GROQ_MODEL || 'llama-3.3-70b-versatile').split(',').map((m) => m.trim()).filter(Boolean);
+    const messages = [
+      { role: 'system', content: sysText },
+      ...history.map((h) => ({ role: h.role === 'model' ? 'assistant' : 'user', content: h.parts[0].text })),
+      { role: 'user', content: q },
+    ];
+    const g0 = Date.now();
+    for (const GM of GMODELS) {
+      const ctl = new AbortController();
+      const timer = setTimeout(() => ctl.abort(), 12000);
+      try {
+        const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          signal: ctl.signal,
+          headers: { 'content-type': 'application/json', authorization: 'Bearer ' + gkey },
+          body: JSON.stringify({ model: GM, messages, temperature: 0.4, max_tokens: 700 }),
+        });
+        clearTimeout(timer);
+        if (!r.ok) { console.log('GROQ ERROR', GM, r.status, (await r.text()).slice(0, 300)); continue; }
+        const j = await r.json();
+        const text = (j.choices?.[0]?.message?.content || '').trim();
+        console.log('GROQ OK', GM, (Date.now() - g0) + 'ms', 'chars:', text.length);
+        if (text) return Response.json({ text });
+      } catch (e) {
+        clearTimeout(timer);
+        console.log('GROQ FAILED', GM, String(e && e.name), String(e && e.message).slice(0, 200));
+      }
+    }
+    if (!key) return Response.json({ error: 'unavailable' }, { status: 502 });
+  }
+
   const body = {
-    systemInstruction: { parts: [{ text: SYSTEM + '\n\nالمعلومات المرفقة (JSON):\n' + clip(JSON.stringify(context), 30000) }] },
+    systemInstruction: { parts: [{ text: sysText }] },
     contents: [...history, { role: 'user', parts: [{ text: q }] }],
     generationConfig: { temperature: 1.0, maxOutputTokens: 2048, thinkingConfig: { thinkingLevel: 'low' } },
   };
 
   const t0 = Date.now();
-  const ctl = new AbortController();
-  const timer = setTimeout(() => ctl.abort(), 18000);
-  try {
-    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`, {
-      method: 'POST',
-      signal: ctl.signal,
-      headers: { 'content-type': 'application/json', 'x-goog-api-key': key },
-      body: JSON.stringify(body),
-    });
-    if (!r.ok) { console.log('GEMINI ERROR', r.status, (await r.text()).slice(0, 500)); return Response.json({ error: 'upstream', status: r.status }, { status: 502 }); }
-    const j = await r.json();
-    clearTimeout(timer);
-    const parts = j.candidates?.[0]?.content?.parts || [];
-    const text = parts.filter((p) => !p.thought).map((p) => p.text || '').join('').trim();
-    console.log('GEMINI OK', MODEL, (Date.now() - t0) + 'ms', 'finish:', j.candidates?.[0]?.finishReason, 'chars:', text.length);
-    if (!text) { console.log('EMPTY ANSWER', JSON.stringify(j).slice(0, 800)); return Response.json({ error: 'empty_answer' }, { status: 502 }); }
-    return Response.json({ text });
-  } catch (e) {
-    clearTimeout(timer);
-    console.log('FETCH FAILED', MODEL, (Date.now() - t0) + 'ms', String(e && e.name), String(e && e.message).slice(0, 200));
-    return Response.json({ error: 'network' }, { status: 502 });
+  const tries = MODELS.length > 1 ? MODELS : [MODELS[0], MODELS[0]];
+  for (let k = 0; k < tries.length; k++) {
+    const MODEL = tries[k];
+    const left = 18000 - (Date.now() - t0);
+    if (left < 3000) break;
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), Math.min(left, 12000));
+    try {
+      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`, {
+        method: 'POST',
+        signal: ctl.signal,
+        headers: { 'content-type': 'application/json', 'x-goog-api-key': key },
+        body: JSON.stringify(body),
+      });
+      clearTimeout(timer);
+      if (!r.ok) {
+        console.log('GEMINI ERROR', MODEL, r.status, (await r.text()).slice(0, 300));
+        if (r.status === 503 || r.status === 429 || r.status === 500) { await new Promise((z) => setTimeout(z, 800)); continue; }
+        return Response.json({ error: 'upstream', status: r.status }, { status: 502 });
+      }
+      const j = await r.json();
+      const parts = j.candidates?.[0]?.content?.parts || [];
+      const text = parts.filter((p) => !p.thought).map((p) => p.text || '').join('').trim();
+      console.log('GEMINI OK', MODEL, (Date.now() - t0) + 'ms', 'finish:', j.candidates?.[0]?.finishReason, 'chars:', text.length);
+      if (text) return Response.json({ text });
+      console.log('EMPTY ANSWER', JSON.stringify(j).slice(0, 800));
+    } catch (e) {
+      clearTimeout(timer);
+      console.log('FETCH FAILED', MODEL, (Date.now() - t0) + 'ms', String(e && e.name), String(e && e.message).slice(0, 200));
+    }
   }
+  return Response.json({ error: 'unavailable' }, { status: 502 });
 };
 
 export const config = { path: '/api/ask' };
