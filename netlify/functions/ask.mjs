@@ -54,18 +54,27 @@ export default async (req) => {
     generationConfig: { temperature: 1.0, maxOutputTokens: 2048, thinkingConfig: { thinkingLevel: 'low' } },
   };
 
+  const t0 = Date.now();
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 18000);
   try {
     const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`, {
       method: 'POST',
+      signal: ctl.signal,
       headers: { 'content-type': 'application/json', 'x-goog-api-key': key },
       body: JSON.stringify(body),
     });
     if (!r.ok) { console.log('GEMINI ERROR', r.status, (await r.text()).slice(0, 500)); return Response.json({ error: 'upstream', status: r.status }, { status: 502 }); }
     const j = await r.json();
-    const text = (j.candidates?.[0]?.content?.parts || []).map((p) => p.text || '').join('').trim();
-    if (!text) return Response.json({ error: 'empty_answer' }, { status: 502 });
+    clearTimeout(timer);
+    const parts = j.candidates?.[0]?.content?.parts || [];
+    const text = parts.filter((p) => !p.thought).map((p) => p.text || '').join('').trim();
+    console.log('GEMINI OK', MODEL, (Date.now() - t0) + 'ms', 'finish:', j.candidates?.[0]?.finishReason, 'chars:', text.length);
+    if (!text) { console.log('EMPTY ANSWER', JSON.stringify(j).slice(0, 800)); return Response.json({ error: 'empty_answer' }, { status: 502 }); }
     return Response.json({ text });
   } catch (e) {
+    clearTimeout(timer);
+    console.log('FETCH FAILED', MODEL, (Date.now() - t0) + 'ms', String(e && e.name), String(e && e.message).slice(0, 200));
     return Response.json({ error: 'network' }, { status: 502 });
   }
 };
