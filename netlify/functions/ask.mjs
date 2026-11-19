@@ -53,7 +53,7 @@ export default async (req) => {
   // ===== Groq (لو فيه GROQ_API_KEY) =====
   const gkey = process.env.GROQ_API_KEY;
   if (gkey) {
-    const GMODELS = (process.env.GROQ_MODELS || process.env.GROQ_MODEL || 'llama-3.3-70b-versatile').split(',').map((m) => m.trim()).filter(Boolean);
+    const GMODELS = (process.env.GROQ_MODELS || process.env.GROQ_MODEL || 'openai/gpt-oss-120b,qwen/qwen3.6-27b').split(',').map((m) => m.trim()).filter(Boolean);
     const messages = [
       { role: 'system', content: sysText },
       ...history.map((h) => ({ role: h.role === 'model' ? 'assistant' : 'user', content: h.parts[0].text })),
@@ -68,12 +68,12 @@ export default async (req) => {
           method: 'POST',
           signal: ctl.signal,
           headers: { 'content-type': 'application/json', authorization: 'Bearer ' + gkey },
-          body: JSON.stringify({ model: GM, messages, temperature: 0.4, max_tokens: 700 }),
+          body: JSON.stringify({ model: GM, messages, temperature: 0.4, max_tokens: 1500, ...(GM.startsWith('openai/gpt-oss') ? { reasoning_effort: 'low' } : GM.startsWith('qwen/') ? { reasoning_effort: 'none' } : {}) }),
         });
         clearTimeout(timer);
         if (!r.ok) { console.log('GROQ ERROR', GM, r.status, (await r.text()).slice(0, 300)); continue; }
         const j = await r.json();
-        const text = (j.choices?.[0]?.message?.content || '').trim();
+        const text = (j.choices?.[0]?.message?.content || '').replace(/<think>[\s\S]*?<\/think>/g, '').trim();
         console.log('GROQ OK', GM, (Date.now() - g0) + 'ms', 'chars:', text.length);
         if (text) return Response.json({ text });
       } catch (e) {
