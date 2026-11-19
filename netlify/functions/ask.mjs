@@ -28,7 +28,7 @@ const clip = (s, n) => String(s ?? '').slice(0, n);
 export default async (req) => {
   if (req.method !== 'POST') return new Response('Method not allowed', { status: 405 });
   const key = process.env.GEMINI_API_KEY;
-  if (!key) return Response.json({ error: 'no_key' }, { status: 500 });
+  if (!key) { console.log('NO KEY: GEMINI_API_KEY is missing'); return Response.json({ error: 'no_key' }, { status: 500 }); }
 
   let b;
   try { b = await req.json(); } catch { return Response.json({ error: 'bad_json' }, { status: 400 }); }
@@ -60,7 +60,7 @@ export default async (req) => {
       headers: { 'content-type': 'application/json', 'x-goog-api-key': key },
       body: JSON.stringify(body),
     });
-    if (!r.ok) return Response.json({ error: 'upstream', status: r.status }, { status: 502 });
+    if (!r.ok) { console.log('GEMINI ERROR', r.status, (await r.text()).slice(0, 500)); return Response.json({ error: 'upstream', status: r.status }, { status: 502 }); }
     const j = await r.json();
     const text = (j.candidates?.[0]?.content?.parts || []).map((p) => p.text || '').join('').trim();
     if (!text) return Response.json({ error: 'empty_answer' }, { status: 502 });
@@ -71,4 +71,3 @@ export default async (req) => {
 };
 
 export const config = { path: '/api/ask' };
-
