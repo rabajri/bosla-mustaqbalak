@@ -121,12 +121,16 @@ label,.lbl{font-size:14px;font-weight:600}
 .step b{width:34px;height:34px;border-radius:50%;color:#FFFFFF;display:flex;align-items:center;justify-content:center;flex:none;font-size:15px}
 .showall{align-self:center}
 @media (prefers-reduced-motion: reduce){*{transition:none!important}}
+#printrep{display:none}
+a.btn{text-decoration:none}
+@media print{body>*:not(#printrep){display:none!important}#printrep{display:block;direction:rtl;font-family:'IBM Plex Sans Arabic',system-ui,sans-serif;color:#1C2B39;padding:24px}
+#printrep h1{font-size:24px;margin:0 0 4px;color:#1E3A5F}#printrep .m{border:1px solid #ddd;border-radius:12px;padding:12px 16px;margin:12px 0;break-inside:avoid}#printrep .m h2{font-size:18px;margin:0 0 6px}#printrep p{margin:4px 0;font-size:13px;line-height:1.7}#printrep .muted{color:#667}}
 </style>
 
 
 </head>
 <body>
-<div class="app" id="app"></div>
+<div class="app" id="app"></div><div id="printrep"></div>
 
 <script>
 (function(){
@@ -256,6 +260,15 @@ const VALQ=[['long','الدراسة والراتب',['📚','راتب أعلى،
  ['loc','مكان الدراسة',['🏠','أدرس في مدينتي وقريب من أهلي'],['✈️','مستعد أسافر لجامعة ثانية عشان التخصص']],
  ['fi','مكان العمل',['🧭','شغل ميداني وحركة'],['💻','مكتب وشاشة']]];
 const DEM={g:['مطلوب','g'],y:['غير محدد','y'],r:['أقل طلباً','r']};
+function printReport(){const ms=S.shareMs||[],t=S.shareT||[];const who=S.name?esc(S.name):g('الطالب','الطالبة');const dot={g:'🟢',y:'🟡',r:'🔴'};
+ document.getElementById('printrep').innerHTML=`<h1>بوصلة مستقبلك · تقرير ${who}</h1><p class="muted">${new Date().toLocaleDateString('ar-SA')}</p>
+ ${t.length?`<p><strong>النمط:</strong> ${DIMS[t[0][0]]} · ${DIMS[t[1][0]]}</p>`:''}
+ <p><strong>أنسب التخصصات:</strong></p>
+ ${ms.map((m,i)=>`<div class="m"><h2>${AR(i+1)}. ${m.n} · توافق ${AR(m.score)}٪</h2><p>طلب السوق: ${dot[m.d]} ${DEM[m.d][0]}</p>${m.inc?`<p>يشمل: ${m.inc}</p>`:''}<p><strong>يدرس:</strong> ${m.study.join('، ')}</p><p><strong>من الوظائف:</strong> ${m.jobs.join('، ')}</p></div>`).join('')}
+ <p><strong>الوظايف المتاحة حالياً:</strong> https://jadarat.sas.sa/</p>
+ <p class="muted">النتيجة مؤشر يساعد على النقاش، مو قرار نهائي. طلب السوق: مؤشر تقريبي من دراسة أكاديمية مسك (٢٠٢٠).</p>
+ <p class="muted">your-future-compass.netlify.app</p>`;
+ setTimeout(()=>window.print(),50);}
 const ALT={chem:['الكيمياء الصناعية والبتروكيماويات','مختبرات الجودة','الكيمياء البيئية'],biol:['المعلوماتية الحيوية','مختبرات المستشفيات','الصناعات الغذائية والدوائية'],geo:['جيولوجيا البترول والتعدين','المياه الجوفية','نظم المعلومات الجغرافية'],econ:['تحليل البيانات الاقتصادية','الاقتصاد الرقمي','الجهات التنظيمية'],pol:['العلاقات الحكومية في الشركات','تحليل المخاطر الجيوسياسية','المنظمات الدولية'],soc:['أبحاث تجربة المستخدم','المسؤولية الاجتماعية في الشركات','تحليل بيانات المجتمع'],hist:['السياحة الثقافية والتراث','الأرشفة الرقمية','المتاحف'],arab:['التدقيق وصناعة المحتوى','تعليم العربية لغير الناطقين بها','المعالجة اللغوية الحاسوبية'],ece:['تصميم ألعاب وأنشطة تعليمية','التدخل المبكر','إدارة الحضانات الخاصة'],lang:['الترجمة التقنية والقانونية','صناعة المحتوى ثنائي اللغة','تعليم اللغة الرقمي'],edu:['التصميم التعليمي','التدريب في الشركات','التعليم الرقمي'],sped:['التدخل المبكر','مراكز التأهيل','تقنيات التعليم المساعدة'],isl:['الاستشارات الشرعية في المصارف','الحوكمة والالتزام','التعليم والبحث'],phys:['الفيزياء الطبية','تحليل البيانات','الطاقة المتجددة'],bio:['الصناعات الدوائية','الجودة في المختبرات','المعلوماتية الحيوية'],psy:['الإرشاد الأسري','الموارد البشرية','تجربة المستخدم (UX)'],law:['الامتثال والحوكمة','قانون التقنية','العقود في الشركات']};
 const altBox=(m,full)=>m.d!=='r'?'':`<div class="panel inset"><strong class="small">«أقل طلباً» ≠ ما فيه وظائف</strong><p class="small" style="margin:0">يعني الخريجين فيه أكثر من حاجة السوق حالياً، فتحتاج تميّز. ${full?'ولو تحبه، فيه مسارات داخله ممكن تفتح لك فرص أكثر:':''}</p>${full&&ALT[m.id]?`<div class="tags">${ALT[m.id].map(x=>`<span class="tag">${x}</span>`).join('')}</div>`:''}</div>`;
 const light=d=>`<span class="light ${DEM[d][1]}"><span class="dot"></span>${DEM[d][0]}</span>`;
@@ -343,7 +356,7 @@ major(){const m=byId(S.major);const mm=matches().find(x=>x.id===m.id)||{};const 
  <div class="panel raised" style="flex-direction:row;align-items:center;gap:14px">${ring(sc,mcol(m),84,'توافق')}<div class="stack" style="gap:6px"><h2><b>${m.n}</b></h2>${m.inc?`<span class="small muted">يشمل: ${m.inc}</span>`:''}${light(m.d)}</div></div>
  <div class="panel raised"><strong class="small">ليش هذي النسبة؟</strong>${[['ميولك',mm.iS],['قدراتك',mm.aS],['اللي يهمك',mm.vS]].map(([l,v])=>`<div><div class="row small"><span>${l}</span><strong>${AR(v)}٪</strong></div><div class="progress inset" style="margin-top:4px"><i style="width:${v}%"></i></div></div>`).join('')}</div>
  <div class="sec"><h3>وش ${g('بتدرس','بتدرسين')}؟</h3><div class="tags">${m.study.map(x=>`<span class="tag">${x}</span>`).join('')}</div></div>
- <div class="sec"><h3>وين ${g('تشتغل','تشتغلين')} بعدين؟</h3><div class="tags">${m.jobs.map(x=>`<span class="tag">${x}</span>`).join('')}</div></div>
+ <div class="sec"><h3>وين ${g('تشتغل','تشتغلين')} بعدين؟</h3><div class="tags">${m.jobs.map(x=>`<span class="tag">${x}</span>`).join('')}</div><a class="small" href="https://jadarat.sas.sa/" target="_blank" rel="noopener" style="display:inline-block;margin-top:8px;color:var(--accent,#2563eb);font-weight:700">🔗 ${g('شوف','شوفي')} الوظايف المتاحة الحين في جدارات</a></div>
  ${altBox(m,true)}
  <div class="panel inset"><strong class="small">يوم في الحياة</strong><p class="small">${m.day}</p></div>
  <div class="stack mt-auto"><button class="btn" data-ask="${m.id}">${g('اسأل','اسألي')} المساعد عن ${m.n}</button><button class="btn soft" data-reelfor="${m.id}">قصص ممن جرّب</button></div></div>`+nav('majors');},
@@ -376,14 +389,15 @@ reels(){const list=S.reelFilter?REELS.filter(r=>r.m===S.reelFilter):REELS;const 
  <button class="btn warm" data-ask="${r.m}">${g('اسأل','اسألي')} عن ${m.n}</button>
  ${S.reelFilter?`<button class="chip showall" data-allreels>كل القصص</button>`:''}</div>`+nav('reels');},
 share(){const {pct}=profile();const t=Object.entries(pct).sort((a,b)=>b[1]-a[1]);const ms=(visible().length?visible():matches()).slice(0,3);
- S.shareText=`${S.name||g('ولدكم','بنتكم')} ${g('سوّى','سوّت')} اختبار الميول في بوصلة مستقبلك.\nالنمط: ${DIMS[t[0][0]]} · ${DIMS[t[1][0]]}\nأنسب التخصصات:\n${ms.map((m,i)=>`${AR(i+1)}. ${m.n}: توافق ${AR(m.score)}٪، ${DEM[m.d][0]} في السوق`).join('\n')}\nودّ${g('ه','ها')} نتناقش فيها مع بعض.`;
+ S.shareText=`${S.name||g('ولدكم','بنتكم')} ${g('سوّى','سوّت')} اختبار الميول في بوصلة مستقبلك.\nالنمط: ${DIMS[t[0][0]]} · ${DIMS[t[1][0]]}\nأنسب التخصصات:\n${ms.map((m,i)=>`${AR(i+1)}. ${m.n}: توافق ${AR(m.score)}٪، ${DEM[m.d][0]} في السوق`).join('\n')}\nودّ${g('ه','ها')} نتناقش فيها مع بعض.\nالوظايف المتاحة حالياً: https://jadarat.sas.sa/`;
+ S.shareMs=ms;S.shareT=t;
  return top()+`<div class="screen">
  <h2>${g('شارك','شاركي')} النتيجة <b>مع أهلك</b></h2><p class="small muted">ملخص واضح يخلي النقاش مبني على معلومة، مو بس رأي.</p>
  <div class="sharecard raised"><div class="row"><strong>ملخص ${S.name?esc(S.name):g('ولدكم','بنتكم')}</strong><span class="dots"><i></i><i></i><i></i></span></div>
   <span><strong>النمط:</strong> ${DIMS[t[0][0]]} · ${DIMS[t[1][0]]}</span>
   ${ms.map(m=>`<div class="row"><span style="display:flex;align-items:center;gap:10px">${ring(m.score,mcol(m),48,'')}${m.n}</span>${light(m.d)}</div>`).join('')}
   <span class="small muted">مع رابط لقصص ممارسين في كل تخصص.</span></div>
- <button class="btn mt-auto" data-copy>انسخ الرسالة</button><p class="note" id="copied" aria-live="polite"></p></div>`+nav('share');}
+ <div class="stack mt-auto" style="gap:10px"><a class="btn" href="https://wa.me/?text=${encodeURIComponent(S.shareText)}" target="_blank" rel="noopener">${g('أرسل','أرسلي')} لأهلك بالواتساب</a><button class="btn soft" data-pdf>${g('حمّل','حمّلي')} التقرير PDF</button><button class="btn soft" data-copy>انسخ الرسالة</button></div><p class="note" id="copied" aria-live="polite"></p></div>`+nav('share');}
 };
 
 
@@ -464,6 +478,7 @@ app.addEventListener('click',e=>{const vv=e.target.closest('.reel')&&app.querySe
  if(d.say){ask(d.say);return;}
  if(d.reel){S.reel+=+d.reel;render();return;}
  if('mute' in d){const v=app.querySelector('.rv');if(v){v.muted=!v.muted;if(!v.muted)v.play().catch(()=>{});b.textContent=v.muted?'🔇 اضغط للصوت':'🔊 الصوت شغال';}return;}
+ if('pdf' in d){printReport();return;}
  if('copy' in d){const el=document.getElementById('copied');
    try{navigator.clipboard.writeText(S.shareText).then(()=>{el.textContent='انْسخت ✓';},()=>{el.textContent=S.shareText;});}catch(_){el.textContent=S.shareText;}return;}
  if(d.go==='chatfree'){AI_HIST.length=0;go('chat',{noQuiz:true,chat:[],major:null});return;}
